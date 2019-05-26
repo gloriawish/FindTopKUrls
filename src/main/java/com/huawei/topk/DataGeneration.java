@@ -36,21 +36,6 @@ public class DataGeneration {
 					bw.flush();
 				}
 			}
-			writeSize = 0;
-			while (writeSize < fileSize) {
-				
-				String url = BASE_URL + "more\n";
-				
-				bw.write(url);
-				
-				writeSize += url.getBytes().length;
-				
-				count++;
-				
-				if (count != 0 && count % 10000 == 0) {
-					bw.flush();
-				}
-			}
 			
 		} catch (IOException e) {
 			e.printStackTrace();

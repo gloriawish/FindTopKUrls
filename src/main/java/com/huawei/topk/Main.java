@@ -40,9 +40,9 @@ public class Main {
 			long size = 0L;
 			String path = "";
 			if (commandLine.hasOption('s')) {
-				size = Long.parseLong(commandLine.getOptionValue('s'));
+				size = 1024 * 1024 * 1024L * Long.parseLong(commandLine.getOptionValue('s'));
 			} else {
-				size = 100 * 1024 * 1024L; // 100MB
+				size = 1024 * 1024 * 1024L; // 1GB
 			}
 			
 			if (commandLine.hasOption('p')) {
