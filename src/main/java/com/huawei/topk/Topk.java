@@ -18,7 +18,7 @@ import java.util.PriorityQueue;
 
 public class Topk {
 	
-	public static long MAX_FILE_SIZE = 1024 * 1024 * 10L; // 10MB
+	public static long MAX_FILE_SIZE = 1024 * 1024 * 512L; // 512MB
 	
 	public static String FILE_PREFIX = "hash_";
 	
