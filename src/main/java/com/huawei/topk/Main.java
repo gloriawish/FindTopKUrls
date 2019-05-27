@@ -1,6 +1,9 @@
 package com.huawei.topk;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.cli.BasicParser;
@@ -76,7 +79,8 @@ public class Main {
 				System.out.println("url file is not exists or not file.");
 				System.exit(-1);
 			}
-			
+			System.out.println("args k: " + k);
+			System.out.println("args file: " + urlFile);
 			getTopK(urlFile, k);
 		}
 
@@ -94,15 +98,20 @@ public class Main {
 		System.out.println("-k,--topk  The top K");
 	}
 	
-	public static void getTopK(String urlFile, int k) {
+	public static void getTopK(String urlFile, int k) throws IOException {
 		Topk p = new Topk();
 		
 		List<UrlEntry> topUrls = p.topk(urlFile, k);
+		
+		BufferedWriter bw = new BufferedWriter(new FileWriter("output.txt"));
 
 		for (int i = 0; i < topUrls.size(); i++) {
 			UrlEntry item = topUrls.get(i);
-			System.out.println(item.url + "\t->\t" + item.count);	
+			bw.write(item.url + "\t->\t" + item.count);	
+			bw.newLine();
 		}
+		bw.close();
+		System.out.println("result save in output.txt");
 		
 	}
 

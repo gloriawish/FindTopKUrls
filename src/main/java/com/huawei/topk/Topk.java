@@ -15,6 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PriorityQueue;
+import java.util.Vector;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Topk {
 	
@@ -42,21 +46,47 @@ public class Topk {
 			
 			start = System.currentTimeMillis();
 			
-			List<MinHeap> heapList = new ArrayList<MinHeap>();
+			// 使用线程池计算
+			ExecutorService fixedThreadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+			
+			final CountDownLatch countDownLatch = new CountDownLatch(splitCount);
+			Vector<MinHeap> heapList = new Vector<MinHeap>();
 			for (int i = 0; i < splitCount; i++) {
-				Map<String, Integer> result = count(fileEntrys.get(i));
-				heapList.add(new MinHeap(result, k));
+				fixedThreadPool.execute(new CalcRunnable(fileEntrys.get(i)) {
+					@Override
+					public void run() {
+						try {
+							Map<String, Integer> result = count(this.getFileEntry());
+							heapList.add(new MinHeap(result, k));
+						} catch (Exception e) {
+							e.printStackTrace();
+						} finally {
+							countDownLatch.countDown();
+						}
+						
+					}
+					
+				});
 			}
+			
+			try {
+	            countDownLatch.await();
+	        } catch (InterruptedException e) {
+	            e.printStackTrace();
+	        }
+			fixedThreadPool.shutdown();
+			
+//			List<MinHeap> heapList = new ArrayList<MinHeap>();
+//			for (int i = 0; i < splitCount; i++) {
+//				Map<String, Integer> result = count(fileEntrys.get(i));
+//				heapList.add(new MinHeap(result, k));
+//			}
 			
 			for (int i = 0; i < heapList.size(); i++) {
 				while (!heapList.get(i).getMinHeap().isEmpty()) {
 		            topKHeap.add(heapList.get(i).getMinHeap().poll());
 		        }
 			}
-			
-			end = System.currentTimeMillis();
-			
-			System.out.println("count and build minHeap used time:" + (end - start) + "ms");
 			
 		}
 		
@@ -66,6 +96,11 @@ public class Topk {
 			topUrls.add(item);
 		}
 		Collections.reverse(topUrls);
+		
+		end = System.currentTimeMillis();
+		
+		System.out.println("calculate topK used time:" + (end - start) + "ms");
+		
 		return topUrls;
 		
 	}
@@ -154,25 +189,29 @@ public class Topk {
 		return map;
 	}
 	
-	
-	
-	public void merge(FileEntry entry) {
-		
-		
-		for (int i = 0; i < entry.fileIndex; i++) {
-			
-		}
-		
-	}
-	
 
+}
+
+abstract class CalcRunnable implements Runnable {
+	
+	private FileEntry fileEntry;
+	public CalcRunnable(FileEntry entry) {
+		this.fileEntry = entry;
+	}
+
+	public FileEntry getFileEntry() {
+		return fileEntry;
+	}
 }
 
 class MinHeap {
 	private PriorityQueue<UrlEntry> minHeap;
 	
+	private int maxSize;
+	
 	public MinHeap(int k) {
-		minHeap = new PriorityQueue<UrlEntry>(k, new Comparator<UrlEntry>(){
+		this.maxSize = k;
+		minHeap = new PriorityQueue<UrlEntry>(new Comparator<UrlEntry>(){
 		    public int compare(UrlEntry item1,UrlEntry item2){
 		        return item1.count-item2.count;
 		    }
@@ -183,7 +222,7 @@ class MinHeap {
 		this(k);
 		
 		for (Entry<String, Integer> ele : map.entrySet()) {
-			minHeap.add(new UrlEntry(ele.getKey(), ele.getValue()));
+			this.add(new UrlEntry(ele.getKey(), ele.getValue()));
 		}
 	}
 	
@@ -192,7 +231,16 @@ class MinHeap {
 	}
 	
 	public void add(UrlEntry urlEntry) {
-		minHeap.add(urlEntry);
+		if (minHeap.size() < maxSize) {
+			minHeap.add(urlEntry);	
+		} else {
+			UrlEntry min = minHeap.peek();
+            if (min != null && urlEntry.count > min.count) {
+            	minHeap.poll();
+            	minHeap.add(urlEntry);
+            }
+		}
+		
 	}
 }
 
